@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>开机启动管理器 - Boot Startup Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 开机启动管理器</h1>
+            <p class="subtitle">macOS Boot Startup Manager</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 左侧：当前启动项 -->
+            <div class="panel left-panel">
+                <div class="panel-header">
+                    <h2>当前启动项</h2>
+                    <span class="count" id="app-count">0 个应用</span>
+                </div>
+
+                <div class="app-list" id="app-list">
+                    <!-- 动态加载 -->
+                </div>
+
+                <div class="panel-footer">
+                    <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+                    <button class="btn btn-secondary" onclick="restoreDefaults()">🔄 恢复默认</button>
+                </div>
+            </div>
+
+            <!-- 右侧：添加应用 -->
+            <div class="panel right-panel">
+                <div class="panel-header">
+                    <h2>添加应用</h2>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="🔍 搜索已安装的应用..." oninput="filterInstalledApps()">
+                    <button class="btn-icon" onclick="refreshInstalledApps()" title="刷新">🔄</button>
+                </div>
+
+                <div class="installed-list" id="installed-list">
+                    <!-- 动态加载 -->
+                </div>
+
+                <div class="panel-footer">
+                    <button class="btn btn-success" onclick="showAddDialog()">📝 手动添加</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮区 -->
+        <div class="action-bar">
+            <button class="btn btn-large btn-generate" onclick="generateScript()">📜 生成启动脚本</button>
+            <button class="btn btn-large btn-run" onclick="runStartup()">🚀 立即启动应用</button>
+        </div>
+
+        <!-- 日志输出 -->
+        <div class="log-panel" id="log-panel" style="display: none;">
+            <div class="log-header">
+                <h3>执行日志</h3>
+                <button class="btn-close" onclick="closeLog()">✕</button>
+            </div>
+            <pre id="log-output"></pre>
+        </div>
+    </div>
+
+    <!-- 手动添加对话框 -->
+    <div class="modal" id="add-dialog" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>手动添加应用</h3>
+                <button class="btn-close" onclick="closeAddDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <label for="app-name-input">应用名称：</label>
+                <input type="text" id="app-name-input" placeholder="例如: Chrome" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="addManualApp()">添加</button>
+                <button class="btn btn-secondary" onclick="closeAddDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast" id="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,23 +1,16 @@
 # 开机启动管理器 - Python 依赖
 # Boot Startup Manager - Python Requirements
 
-# 本项目仅使用 Python 标准库，无需额外依赖
-# This project only uses Python standard library, no additional dependencies required
-
 # Python 版本要求 / Python Version Required
 # Python >= 3.6
 
-# 标准库模块 / Standard Library Modules Used:
-# - tkinter (GUI界面)
-# - json (配置文件处理)
-# - os (文件和系统操作)
-# - subprocess (执行脚本)
-# - platform (系统平台检测)
-# - pathlib (路径处理)
+# Web 框架 / Web Framework
+Flask>=2.0.0
 
-# 注意 / Note:
-# tkinter 在某些 Linux 发行版需要单独安装
-# tkinter may need to be installed separately on some Linux distributions
-#
-# Ubuntu/Debian: sudo apt-get install python3-tk
-# CentOS/RHEL: sudo yum install python3-tkinter
+# 安装方法 / Installation
+# pip install -r requirements.txt
+
+# 或使用虚拟环境（推荐）/ Or use virtual environment (recommended)
+# python3 -m venv myenv
+# source myenv/bin/activate
+# pip install -r requirements.txt

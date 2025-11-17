@@ -7,11 +7,15 @@ build/
 
 # Python
 venv/
+myenv/
+env/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+*.py[cod]
+*$py.class
 
 # 环境配置
 .env
@@ -36,7 +40,10 @@ Thumbs.db
 # 生成的启动脚本（用户自己生成）
 # Generated startup scripts (users generate their own)
 startup_apps.sh
-startup_apps.bat
+
+# Flask
+instance/
+.webassets-cache
 
 # 测试和临时文件
 # Test and temporary files
@@ -44,3 +51,4 @@ test_*.py
 *.swp
 *.swo
 *~
+.pytest_cache/
