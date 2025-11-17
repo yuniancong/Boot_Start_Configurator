@@ -57,7 +57,6 @@
             <div class="path-input-group">
                 <label for="script-path">📁 脚本保存路径：</label>
                 <input type="text" id="script-path" value="{{ default_script_path }}" placeholder="输入脚本保存路径">
-                <button class="btn btn-small btn-copy" onclick="copyPath()" title="复制路径">📋 复制</button>
                 <button class="btn btn-small" onclick="resetPath()" title="恢复默认">🔄 重置</button>
             </div>
             <div class="path-hint">
@@ -68,6 +67,7 @@
         <!-- 操作按钮区 -->
         <div class="action-bar">
             <button class="btn btn-large btn-generate" onclick="generateScript()">📜 生成启动脚本</button>
+            <button class="btn btn-large btn-copy-script" onclick="copyScriptContent()">📋 复制脚本内容</button>
             <button class="btn btn-large btn-run" onclick="runStartup()">🚀 立即启动应用</button>
         </div>
 

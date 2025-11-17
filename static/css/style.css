@@ -331,6 +331,15 @@ header h1 {
     background: #0b7dda;
 }
 
+.btn-copy-script {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-copy-script:hover {
+    background: #138496;
+}
+
 .btn-run {
     background: #FF9800;
     color: white;

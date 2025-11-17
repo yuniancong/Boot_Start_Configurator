@@ -338,22 +338,29 @@ async function runStartup() {
     }
 }
 
-// 复制路径到剪贴板
-async function copyPath() {
-    const pathInput = document.getElementById('script-path');
-    if (!pathInput) return;
-
-    const path = pathInput.value;
+// 复制脚本内容到剪贴板
+async function copyScriptContent() {
+    if (currentApps.length === 0) {
+        showToast('启动列表为空，请先添加应用', 'error');
+        return;
+    }
 
     try {
-        await navigator.clipboard.writeText(path);
-        showToast('✅ 路径已复制到剪贴板', 'success');
+        // 获取脚本内容
+        const response = await fetch('/api/script/content');
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.message, 'error');
+            return;
+        }
+
+        // 复制到剪贴板
+        await navigator.clipboard.writeText(data.content);
+        showToast('✅ 脚本内容已复制到剪贴板', 'success');
     } catch (error) {
-        // 降级方案：使用传统方法
-        pathInput.select();
-        pathInput.setSelectionRange(0, 99999);
-        document.execCommand('copy');
-        showToast('✅ 路径已复制到剪贴板', 'success');
+        showToast('复制失败：' + error.message, 'error');
+        console.error(error);
     }
 }
 

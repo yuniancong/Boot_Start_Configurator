@@ -137,6 +137,22 @@ def get_installed_apps():
     return jsonify({"apps": apps})
 
 
+@app.route('/api/script/content', methods=['GET'])
+def get_script_content():
+    """获取脚本内容（用于复制）"""
+    apps = load_config()
+
+    if not apps:
+        return jsonify({"success": False, "message": "启动列表为空"}), 400
+
+    script_content = generate_startup_script(apps)
+
+    return jsonify({
+        "success": True,
+        "content": script_content
+    })
+
+
 @app.route('/api/script/generate', methods=['POST'])
 def generate_script():
     """生成启动脚本"""
