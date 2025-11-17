@@ -15,7 +15,8 @@ app = Flask(__name__)
 
 # 配置文件路径
 CONFIG_FILE = Path.home() / ".startup_manager_config.json"
-SCRIPT_FILE = Path.home() / "startup_apps.sh"
+# 默认脚本路径改为桌面
+DEFAULT_SCRIPT_FILE = Path.home() / "Desktop" / "startup_apps.sh"
 
 # 默认应用列表
 DEFAULT_APPS = [
@@ -29,7 +30,8 @@ DEFAULT_APPS = [
 @app.route('/')
 def index():
     """主页"""
-    return render_template('index.html')
+    # 传递默认脚本路径给前端
+    return render_template('index.html', default_script_path=str(DEFAULT_SCRIPT_FILE))
 
 
 @app.route('/api/apps', methods=['GET'])
@@ -138,24 +140,36 @@ def get_installed_apps():
 @app.route('/api/script/generate', methods=['POST'])
 def generate_script():
     """生成启动脚本"""
+    data = request.get_json() or {}
+    custom_path = data.get('path', '')
+
     apps = load_config()
 
     if not apps:
         return jsonify({"success": False, "message": "启动列表为空"}), 400
 
+    # 如果指定了自定义路径，使用自定义路径，否则使用默认桌面路径
+    if custom_path:
+        script_file = Path(custom_path).expanduser()
+    else:
+        script_file = DEFAULT_SCRIPT_FILE
+
     script_content = generate_startup_script(apps)
 
     try:
-        with open(SCRIPT_FILE, 'w', encoding='utf-8') as f:
+        # 确保目录存在
+        script_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(script_file, 'w', encoding='utf-8') as f:
             f.write(script_content)
 
         # 设置可执行权限
-        os.chmod(SCRIPT_FILE, 0o755)
+        os.chmod(script_file, 0o755)
 
         return jsonify({
             "success": True,
-            "message": f"脚本已生成：{SCRIPT_FILE}",
-            "path": str(SCRIPT_FILE)
+            "message": f"脚本已生成",
+            "path": str(script_file)
         })
     except Exception as e:
         return jsonify({"success": False, "message": f"生成失败：{str(e)}"}), 500
@@ -164,23 +178,34 @@ def generate_script():
 @app.route('/api/script/run', methods=['POST'])
 def run_script():
     """执行启动脚本"""
-    # 先生成脚本
+    data = request.get_json() or {}
+    custom_path = data.get('path', '')
+
     apps = load_config()
 
     if not apps:
         return jsonify({"success": False, "message": "启动列表为空"}), 400
 
+    # 如果指定了自定义路径，使用自定义路径，否则使用默认桌面路径
+    if custom_path:
+        script_file = Path(custom_path).expanduser()
+    else:
+        script_file = DEFAULT_SCRIPT_FILE
+
     script_content = generate_startup_script(apps)
 
     try:
-        with open(SCRIPT_FILE, 'w', encoding='utf-8') as f:
+        # 确保目录存在
+        script_file.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(script_file, 'w', encoding='utf-8') as f:
             f.write(script_content)
 
-        os.chmod(SCRIPT_FILE, 0o755)
+        os.chmod(script_file, 0o755)
 
         # 执行脚本
         result = subprocess.run(
-            ['/bin/bash', str(SCRIPT_FILE)],
+            ['/bin/bash', str(script_file)],
             capture_output=True,
             text=True,
             timeout=60
@@ -189,7 +214,8 @@ def run_script():
         return jsonify({
             "success": True,
             "message": "执行完成",
-            "output": result.stdout + result.stderr
+            "output": result.stdout + result.stderr,
+            "path": str(script_file)
         })
     except subprocess.TimeoutExpired:
         return jsonify({"success": False, "message": "执行超时"}), 500

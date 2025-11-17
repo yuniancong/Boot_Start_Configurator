@@ -2,11 +2,18 @@
 let currentApps = [];
 let installedApps = [];
 let filteredInstalledApps = [];
+let defaultScriptPath = '';
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
     loadApps();
     loadInstalledApps();
+
+    // 保存默认路径
+    const pathInput = document.getElementById('script-path');
+    if (pathInput) {
+        defaultScriptPath = pathInput.value;
+    }
 });
 
 // 加载当前启动项
@@ -264,15 +271,24 @@ async function generateScript() {
         return;
     }
 
+    const pathInput = document.getElementById('script-path');
+    const customPath = pathInput ? pathInput.value.trim() : '';
+
     try {
         const response = await fetch('/api/script/generate', {
-            method: 'POST'
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path: customPath})
         });
 
         const data = await response.json();
 
         if (data.success) {
-            showToast(data.message, 'success');
+            showToast(`✅ ${data.message}\n📁 ${data.path}`, 'success');
+            // 更新输入框为实际生成的路径
+            if (pathInput) {
+                pathInput.value = data.path;
+            }
         } else {
             showToast(data.message, 'error');
         }
@@ -289,19 +305,28 @@ async function runStartup() {
         return;
     }
 
+    const pathInput = document.getElementById('script-path');
+    const customPath = pathInput ? pathInput.value.trim() : '';
+
     showToast('正在执行启动脚本...', 'info');
     showLog('正在启动应用，请稍候...\n\n');
 
     try {
         const response = await fetch('/api/script/run', {
-            method: 'POST'
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({path: customPath})
         });
 
         const data = await response.json();
 
         if (data.success) {
             showLog(data.output);
-            showToast('执行完成', 'success');
+            showToast('✅ 执行完成', 'success');
+            // 更新输入框为实际执行的路径
+            if (pathInput && data.path) {
+                pathInput.value = data.path;
+            }
         } else {
             showLog('错误: ' + data.message);
             showToast(data.message, 'error');
@@ -310,6 +335,34 @@ async function runStartup() {
         showLog('错误: ' + error.message);
         showToast('执行失败', 'error');
         console.error(error);
+    }
+}
+
+// 复制路径到剪贴板
+async function copyPath() {
+    const pathInput = document.getElementById('script-path');
+    if (!pathInput) return;
+
+    const path = pathInput.value;
+
+    try {
+        await navigator.clipboard.writeText(path);
+        showToast('✅ 路径已复制到剪贴板', 'success');
+    } catch (error) {
+        // 降级方案：使用传统方法
+        pathInput.select();
+        pathInput.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        showToast('✅ 路径已复制到剪贴板', 'success');
+    }
+}
+
+// 重置路径
+function resetPath() {
+    const pathInput = document.getElementById('script-path');
+    if (pathInput && defaultScriptPath) {
+        pathInput.value = defaultScriptPath;
+        showToast('✅ 已恢复默认路径', 'success');
     }
 }
 

@@ -52,6 +52,19 @@
             </div>
         </div>
 
+        <!-- 脚本路径设置 -->
+        <div class="script-path-panel">
+            <div class="path-input-group">
+                <label for="script-path">📁 脚本保存路径：</label>
+                <input type="text" id="script-path" value="{{ default_script_path }}" placeholder="输入脚本保存路径">
+                <button class="btn btn-small btn-copy" onclick="copyPath()" title="复制路径">📋 复制</button>
+                <button class="btn btn-small" onclick="resetPath()" title="恢复默认">🔄 重置</button>
+            </div>
+            <div class="path-hint">
+                💡 提示：默认保存到桌面，也可以自定义路径（如 ~/Documents/startup_apps.sh）
+            </div>
+        </div>
+
         <!-- 操作按钮区 -->
         <div class="action-bar">
             <button class="btn btn-large btn-generate" onclick="generateScript()">📜 生成启动脚本</button>
