@@ -13,6 +13,19 @@
             <p class="subtitle">macOS Boot Startup Manager</p>
         </header>
 
+        <!-- 配置管理面板 -->
+        <div class="config-manager-panel">
+            <div class="config-selector-group">
+                <label for="config-select">📂 配置方案：</label>
+                <select id="config-select" onchange="switchConfig()">
+                    <!-- 动态加载 -->
+                </select>
+                <button class="btn btn-small btn-save-config" onclick="showSaveConfigDialog()" title="另存为新配置">💾 另存为</button>
+                <button class="btn btn-small btn-rename-config" onclick="showRenameConfigDialog()" title="重命名当前配置" id="btn-rename">✏️ 重命名</button>
+                <button class="btn btn-small btn-delete-config" onclick="deleteCurrentConfig()" title="删除当前配置" id="btn-delete">🗑️ 删除</button>
+            </div>
+        </div>
+
         <div class="main-content">
             <!-- 左侧：当前启动项 -->
             <div class="panel left-panel">
@@ -95,6 +108,42 @@
             <div class="modal-footer">
                 <button class="btn btn-primary" onclick="addManualApp()">添加</button>
                 <button class="btn btn-secondary" onclick="closeAddDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 另存为配置对话框 -->
+    <div class="modal" id="save-config-dialog" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>另存为新配置</h3>
+                <button class="btn-close" onclick="closeSaveConfigDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <label for="config-name-input">配置名称：</label>
+                <input type="text" id="config-name-input" placeholder="例如: 工作配置" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveNewConfig()">保存</button>
+                <button class="btn btn-secondary" onclick="closeSaveConfigDialog()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 重命名配置对话框 -->
+    <div class="modal" id="rename-config-dialog" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>重命名配置</h3>
+                <button class="btn-close" onclick="closeRenameConfigDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <label for="rename-config-input">新名称：</label>
+                <input type="text" id="rename-config-input" placeholder="输入新名称" autofocus>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="renameConfig()">确定</button>
+                <button class="btn btn-secondary" onclick="closeRenameConfigDialog()">取消</button>
             </div>
         </div>
     </div>

@@ -36,6 +36,77 @@ header h1 {
     opacity: 0.9;
 }
 
+/* 配置管理面板 */
+.config-manager-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.config-selector-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.config-selector-group label {
+    font-weight: 500;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.config-selector-group select {
+    flex: 1;
+    max-width: 300px;
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+}
+
+.config-selector-group select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.btn-save-config {
+    background: #28a745;
+    color: white;
+}
+
+.btn-save-config:hover {
+    background: #218838;
+}
+
+.btn-rename-config {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-rename-config:hover {
+    background: #138496;
+}
+
+.btn-delete-config {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-delete-config:hover {
+    background: #c82333;
+}
+
+.btn-delete-config:disabled,
+.btn-rename-config:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 /* 主内容区 */
 .main-content {
     display: grid;

@@ -130,6 +130,170 @@ def restore_defaults():
         return jsonify({"success": False, "message": "恢复失败"}), 500
 
 
+@app.route('/api/configs', methods=['GET'])
+def get_all_configs():
+    """获取所有配置方案"""
+    full_config = load_full_config()
+    current = full_config.get('current', 'default')
+    configs = full_config.get('configs', {})
+
+    # 转换为前端需要的格式
+    config_list = []
+    for config_id, config_data in configs.items():
+        config_list.append({
+            "id": config_id,
+            "name": config_data.get('name', config_id),
+            "apps": config_data.get('apps', []),
+            "isCurrent": config_id == current
+        })
+
+    return jsonify({
+        "success": True,
+        "current": current,
+        "configs": config_list
+    })
+
+
+@app.route('/api/configs/switch', methods=['POST'])
+def switch_config():
+    """切换到指定配置"""
+    data = request.get_json()
+    config_id = data.get('id', '')
+
+    if not config_id:
+        return jsonify({"success": False, "message": "配置ID不能为空"}), 400
+
+    full_config = load_full_config()
+
+    if config_id not in full_config['configs']:
+        return jsonify({"success": False, "message": "配置不存在"}), 404
+
+    # 切换当前配置
+    full_config['current'] = config_id
+
+    if save_full_config(full_config):
+        apps = full_config['configs'][config_id].get('apps', [])
+        return jsonify({
+            "success": True,
+            "message": f"已切换到：{full_config['configs'][config_id]['name']}",
+            "apps": apps
+        })
+    else:
+        return jsonify({"success": False, "message": "切换失败"}), 500
+
+
+@app.route('/api/configs/save', methods=['POST'])
+def save_new_config():
+    """另存为新配置"""
+    data = request.get_json()
+    config_name = data.get('name', '').strip()
+    apps = data.get('apps', [])
+
+    if not config_name:
+        return jsonify({"success": False, "message": "配置名称不能为空"}), 400
+
+    full_config = load_full_config()
+
+    # 生成唯一ID（使用时间戳）
+    import time
+    config_id = f"config_{int(time.time())}"
+
+    # 检查名称是否重复
+    for existing_config in full_config['configs'].values():
+        if existing_config['name'] == config_name:
+            return jsonify({"success": False, "message": "配置名称已存在"}), 400
+
+    # 添加新配置
+    full_config['configs'][config_id] = {
+        "name": config_name,
+        "apps": apps
+    }
+
+    if save_full_config(full_config):
+        return jsonify({
+            "success": True,
+            "message": f"配置'{config_name}'已保存",
+            "id": config_id
+        })
+    else:
+        return jsonify({"success": False, "message": "保存失败"}), 500
+
+
+@app.route('/api/configs/rename', methods=['POST'])
+def rename_config():
+    """重命名配置"""
+    data = request.get_json()
+    config_id = data.get('id', '')
+    new_name = data.get('name', '').strip()
+
+    if not config_id or not new_name:
+        return jsonify({"success": False, "message": "参数不能为空"}), 400
+
+    # 不允许重命名默认配置
+    if config_id == 'default':
+        return jsonify({"success": False, "message": "默认配置不能重命名"}), 400
+
+    full_config = load_full_config()
+
+    if config_id not in full_config['configs']:
+        return jsonify({"success": False, "message": "配置不存在"}), 404
+
+    # 检查新名称是否重复
+    for cid, existing_config in full_config['configs'].items():
+        if cid != config_id and existing_config['name'] == new_name:
+            return jsonify({"success": False, "message": "配置名称已存在"}), 400
+
+    # 重命名
+    full_config['configs'][config_id]['name'] = new_name
+
+    if save_full_config(full_config):
+        return jsonify({
+            "success": True,
+            "message": f"已重命名为'{new_name}'"
+        })
+    else:
+        return jsonify({"success": False, "message": "重命名失败"}), 500
+
+
+@app.route('/api/configs/delete', methods=['POST'])
+def delete_config():
+    """删除配置"""
+    data = request.get_json()
+    config_id = data.get('id', '')
+
+    if not config_id:
+        return jsonify({"success": False, "message": "配置ID不能为空"}), 400
+
+    # 不允许删除默认配置
+    if config_id == 'default':
+        return jsonify({"success": False, "message": "默认配置不能删除"}), 400
+
+    full_config = load_full_config()
+
+    if config_id not in full_config['configs']:
+        return jsonify({"success": False, "message": "配置不存在"}), 404
+
+    config_name = full_config['configs'][config_id]['name']
+
+    # 如果删除的是当前配置，切换到默认配置
+    if full_config['current'] == config_id:
+        full_config['current'] = 'default'
+
+    # 删除配置
+    del full_config['configs'][config_id]
+
+    if save_full_config(full_config):
+        # 如果删除的是当前配置，返回默认配置的apps
+        apps = full_config['configs']['default'].get('apps', [])
+        return jsonify({
+            "success": True,
+            "message": f"已删除配置'{config_name}'",
+            "apps": apps if full_config['current'] == 'default' else None
+        })
+    else:
+        return jsonify({"success": False, "message": "删除失败"}), 500
+
+
 @app.route('/api/installed', methods=['GET'])
 def get_installed_apps():
     """获取已安装的应用列表"""
@@ -245,22 +409,109 @@ def load_config():
         try:
             with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-                return config.get('apps', DEFAULT_APPS.copy())
+
+                # 兼容旧格式（直接是apps数组）
+                if isinstance(config, dict) and 'apps' in config and 'configs' not in config:
+                    # 旧格式，转换为新格式
+                    old_apps = config.get('apps', [])
+                    config = {
+                        "current": "default",
+                        "configs": {
+                            "default": {
+                                "name": "默认配置",
+                                "apps": old_apps if old_apps else DEFAULT_APPS.copy()
+                            }
+                        }
+                    }
+                    save_full_config(config)
+
+                # 新格式
+                if 'configs' in config:
+                    current = config.get('current', 'default')
+                    if current in config['configs']:
+                        return config['configs'][current].get('apps', DEFAULT_APPS.copy())
+
+                return DEFAULT_APPS.copy()
         except Exception as e:
             print(f"加载配置失败：{e}")
             return DEFAULT_APPS.copy()
     else:
+        # 首次使用，创建默认配置
+        default_config = {
+            "current": "default",
+            "configs": {
+                "default": {
+                    "name": "默认配置",
+                    "apps": DEFAULT_APPS.copy()
+                }
+            }
+        }
+        save_full_config(default_config)
         return DEFAULT_APPS.copy()
 
 
 def save_config(apps):
-    """保存配置"""
+    """保存当前配置的apps"""
     try:
-        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-            json.dump({"apps": apps}, f, ensure_ascii=False, indent=2)
+        # 读取完整配置
+        full_config = load_full_config()
+        current = full_config.get('current', 'default')
+
+        # 更新当前配置的apps
+        if current in full_config['configs']:
+            full_config['configs'][current]['apps'] = apps
+
+        save_full_config(full_config)
         return True
     except Exception as e:
         print(f"保存配置失败：{e}")
+        return False
+
+
+def load_full_config():
+    """加载完整配置（包括所有配置方案）"""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+
+                # 兼容旧格式
+                if isinstance(config, dict) and 'apps' in config and 'configs' not in config:
+                    old_apps = config.get('apps', [])
+                    config = {
+                        "current": "default",
+                        "configs": {
+                            "default": {
+                                "name": "默认配置",
+                                "apps": old_apps if old_apps else DEFAULT_APPS.copy()
+                            }
+                        }
+                    }
+
+                return config
+        except Exception as e:
+            print(f"加载完整配置失败：{e}")
+
+    # 返回默认配置
+    return {
+        "current": "default",
+        "configs": {
+            "default": {
+                "name": "默认配置",
+                "apps": DEFAULT_APPS.copy()
+            }
+        }
+    }
+
+
+def save_full_config(config):
+    """保存完整配置"""
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"保存完整配置失败：{e}")
         return False
 
 

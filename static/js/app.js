@@ -3,9 +3,12 @@ let currentApps = [];
 let installedApps = [];
 let filteredInstalledApps = [];
 let defaultScriptPath = '';
+let allConfigs = [];
+let currentConfigId = 'default';
 
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', function() {
+    loadConfigs();  // 先加载配置列表
     loadApps();
     loadInstalledApps();
 
@@ -436,4 +439,266 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
+}
+
+// ========== 配置管理功能 ==========
+
+// 加载所有配置
+async function loadConfigs() {
+    try {
+        const response = await fetch('/api/configs');
+        const data = await response.json();
+
+        if (data.success) {
+            allConfigs = data.configs;
+            currentConfigId = data.current;
+            renderConfigSelector();
+            updateConfigButtons();
+        }
+    } catch (error) {
+        console.error('加载配置失败:', error);
+    }
+}
+
+// 渲染配置选择器
+function renderConfigSelector() {
+    const select = document.getElementById('config-select');
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    allConfigs.forEach(config => {
+        const option = document.createElement('option');
+        option.value = config.id;
+        option.textContent = config.name;
+        if (config.isCurrent) {
+            option.selected = true;
+        }
+        select.appendChild(option);
+    });
+}
+
+// 更新配置按钮状态
+function updateConfigButtons() {
+    const btnRename = document.getElementById('btn-rename');
+    const btnDelete = document.getElementById('btn-delete');
+
+    // 默认配置不能重命名和删除
+    const isDefault = currentConfigId === 'default';
+
+    if (btnRename) {
+        btnRename.disabled = isDefault;
+    }
+    if (btnDelete) {
+        btnDelete.disabled = isDefault;
+    }
+}
+
+// 切换配置
+async function switchConfig() {
+    const select = document.getElementById('config-select');
+    if (!select) return;
+
+    const newConfigId = select.value;
+
+    if (newConfigId === currentConfigId) return;
+
+    try {
+        const response = await fetch('/api/configs/switch', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: newConfigId})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentConfigId = newConfigId;
+            currentApps = data.apps;
+            renderAppList();
+            updateConfigButtons();
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.message, 'error');
+            // 恢复选择
+            select.value = currentConfigId;
+        }
+    } catch (error) {
+        showToast('切换失败', 'error');
+        console.error(error);
+        // 恢复选择
+        select.value = currentConfigId;
+    }
+}
+
+// 显示另存为配置对话框
+function showSaveConfigDialog() {
+    if (currentApps.length === 0) {
+        showToast('启动列表为空，请先添加应用', 'error');
+        return;
+    }
+
+    const dialog = document.getElementById('save-config-dialog');
+    const input = document.getElementById('config-name-input');
+
+    dialog.style.display = 'flex';
+    input.value = '';
+    input.focus();
+
+    input.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            saveNewConfig();
+        }
+    };
+}
+
+// 关闭另存为对话框
+function closeSaveConfigDialog() {
+    document.getElementById('save-config-dialog').style.display = 'none';
+}
+
+// 保存新配置
+async function saveNewConfig() {
+    const input = document.getElementById('config-name-input');
+    const configName = input.value.trim();
+
+    if (!configName) {
+        showToast('配置名称不能为空', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/configs/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: configName,
+                apps: currentApps
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeSaveConfigDialog();
+            showToast(data.message, 'success');
+            // 重新加载配置列表
+            await loadConfigs();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('保存失败', 'error');
+        console.error(error);
+    }
+}
+
+// 显示重命名配置对话框
+function showRenameConfigDialog() {
+    if (currentConfigId === 'default') {
+        showToast('默认配置不能重命名', 'error');
+        return;
+    }
+
+    const dialog = document.getElementById('rename-config-dialog');
+    const input = document.getElementById('rename-config-input');
+
+    // 获取当前配置名称
+    const currentConfig = allConfigs.find(c => c.id === currentConfigId);
+    input.value = currentConfig ? currentConfig.name : '';
+
+    dialog.style.display = 'flex';
+    input.focus();
+    input.select();
+
+    input.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+            renameConfig();
+        }
+    };
+}
+
+// 关闭重命名对话框
+function closeRenameConfigDialog() {
+    document.getElementById('rename-config-dialog').style.display = 'none';
+}
+
+// 重命名配置
+async function renameConfig() {
+    const input = document.getElementById('rename-config-input');
+    const newName = input.value.trim();
+
+    if (!newName) {
+        showToast('配置名称不能为空', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/configs/rename', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                id: currentConfigId,
+                name: newName
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeRenameConfigDialog();
+            showToast(data.message, 'success');
+            // 重新加载配置列表
+            await loadConfigs();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('重命名失败', 'error');
+        console.error(error);
+    }
+}
+
+// 删除当前配置
+async function deleteCurrentConfig() {
+    if (currentConfigId === 'default') {
+        showToast('默认配置不能删除', 'error');
+        return;
+    }
+
+    const currentConfig = allConfigs.find(c => c.id === currentConfigId);
+    const configName = currentConfig ? currentConfig.name : '当前配置';
+
+    if (!confirm(`确定要删除配置"${configName}"吗？\n删除后将切换到默认配置。`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/configs/delete', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: currentConfigId})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message, 'success');
+
+            // 如果返回了apps，说明切换到了默认配置
+            if (data.apps) {
+                currentApps = data.apps;
+                currentConfigId = 'default';
+                renderAppList();
+            }
+
+            // 重新加载配置列表
+            await loadConfigs();
+        } else {
+            showToast(data.message, 'error');
+        }
+    } catch (error) {
+        showToast('删除失败', 'error');
+        console.error(error);
+    }
 }
