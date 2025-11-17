@@ -243,13 +243,11 @@ def scan_installed_apps():
 
 
 def generate_startup_script(apps):
-    """生成启动脚本"""
+    """生成启动脚本 - 完全按照完美版本的格式"""
     apps_array = '\n'.join([f'"{app}"' for app in apps])
 
     return f'''#!/bin/bash
-# 开机启动脚本 - 自动生成
-# Boot Startup Script - Auto Generated
-
+# 一键启动：仅启动未在运行的这些 App（已运行的跳过）
 apps=(
 {apps_array}
 )
