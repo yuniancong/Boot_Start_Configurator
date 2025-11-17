@@ -1,0 +1,49 @@
+# 一键启动：仅启动未在运行的这些 App（已运行的跳过）
+apps=(
+"Antinote"
+"BetterTouchTool"
+"Bob"
+"CleanShot X"
+"Clicknow"
+"Dropover"
+"Hookmark"
+"Magnet"
+"Mouseless"
+"One Switch"
+"PixelSnap"
+"PopClip"
+"Raycast"
+"Screen Studio"
+"Shottr"
+"Snipaste"
+"superwhisper"
+"Surge"
+"Swish"
+"Voicenotes"
+)
+
+echo "🚀 检查并启动应用（已运行的将跳过）..."
+for name in "${apps[@]}"; do
+  # 判断是否运行
+  if osascript -e 'tell application "System Events" to return (name of processes) contains "'"$name"'"' 2>/dev/null | grep -qi true; then
+    echo "✅ 已在运行：$name"
+  else
+    echo "🔹 启动：$name"
+    open -a "$name" 2>/dev/null || echo "⚠️ 未找到或无法启动：$name"
+    sleep 0.8
+    # 激活一次，确保菜单栏 / 辅助功能类 App 初始化成功
+    osascript -e 'try
+      tell application "'"$name"'" to activate
+    end try' >/dev/null 2>&1
+    # 如果终端有辅助功能权限则隐藏窗口
+    osascript -e 'tell application "System Events"
+      if (name of processes) contains "'"$name"'" then
+        try
+          set visible of process "'"$name"'" to false
+        end try
+      end if
+    end tell' >/dev/null 2>&1
+    echo "✅ 已启动：$name"
+  fi
+done
+echo "🎉 所有未启动的应用已成功开启！"
